@@ -1,7 +1,8 @@
 import "server-only";
 
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
+import { spawnCodex } from "@/lib/codex-cli";
 
 type RunCodexOptions = {
   cwd?: string;
@@ -18,7 +19,7 @@ type PendingRequest = {
 };
 
 class AppServerClient {
-  private proc: ChildProcessWithoutNullStreams;
+  private proc?: ChildProcessWithoutNullStreams;
   private nextId = 1;
   private pending = new Map<number, PendingRequest>();
   private buffer = "";
@@ -27,12 +28,12 @@ class AppServerClient {
   private turnId = "";
   private completed = false;
 
-  constructor(private readonly options: RunCodexOptions) {
-    this.proc = spawn("codex", ["app-server"], {
-      stdio: ["pipe", "pipe", "pipe"],
-      cwd: options.cwd ?? process.cwd(),
-    });
+  constructor(private readonly options: RunCodexOptions) {}
 
+  private async startProcess() {
+    this.proc = await spawnCodex(["app-server"], {
+      cwd: this.options.cwd ?? process.cwd(),
+    });
     this.proc.stdout.on("data", (chunk) => this.onStdout(chunk.toString()));
     this.proc.stderr.on("data", (chunk) => {
       void this.emit("stderr", chunk.toString());
@@ -40,8 +41,9 @@ class AppServerClient {
   }
 
   async run() {
+    await this.startProcess();
     const timeout = setTimeout(() => {
-      this.proc.kill();
+      this.proc?.kill();
       for (const request of this.pending.values()) {
         request.reject(new Error("Codex App Server timed out."));
       }
@@ -61,7 +63,7 @@ class AppServerClient {
       const auth = (await this.request("getAuthStatus", {})) as { authMethod?: string };
       await this.emit("auth", "Codex auth status checked.", auth);
       if (!auth.authMethod) {
-        throw new Error("Codex is not logged in. Run `codex login` in your terminal first.");
+        throw new Error("Codex is not logged in. Open Settings and start Codex login.");
       }
 
       const thread = (await this.request("thread/start", {
@@ -102,20 +104,20 @@ class AppServerClient {
       };
     } finally {
       clearTimeout(timeout);
-      this.proc.kill();
+      this.proc?.kill();
     }
   }
 
   private request(method: string, params: unknown) {
     const id = this.nextId++;
-    this.proc.stdin.write(JSON.stringify({ id, method, params }) + "\n");
+    this.proc?.stdin.write(JSON.stringify({ id, method, params }) + "\n");
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
     });
   }
 
   private notify(method: string, params?: unknown) {
-    this.proc.stdin.write(JSON.stringify({ method, params }) + "\n");
+    this.proc?.stdin.write(JSON.stringify({ method, params }) + "\n");
   }
 
   private onStdout(data: string) {
@@ -166,7 +168,7 @@ class AppServerClient {
     }
 
     if (method.endsWith("/requestApproval")) {
-      this.proc.stdin.write(
+      this.proc?.stdin.write(
         JSON.stringify({
           id: message.id,
           result: { decision: "decline" },

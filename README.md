@@ -89,7 +89,9 @@ Before using the app:
 codex login status
 ```
 
-If Codex is not logged in, run:
+If Codex is not logged in, open `Settings` -> `Codex App Server` inside Research Dojo and start Codex login there. The app will show the device-auth URL and one-time code on the settings screen.
+
+You can also log in from a terminal:
 
 ```bash
 codex login

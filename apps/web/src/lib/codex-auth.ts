@@ -1,12 +1,14 @@
 import "server-only";
 
-import { spawn } from "node:child_process";
+import { spawnCodex, runCodexCommand } from "@/lib/codex-cli";
 
 export type CodexAuthStatus = {
   available: boolean;
   loggedIn: boolean;
   method: string;
   statusText: string;
+  appServerAvailable: boolean;
+  binaryPath?: string;
   codexHome?: string;
   userAgent?: string;
   error?: string;
@@ -18,36 +20,13 @@ type JsonRpcMessage = {
   error?: unknown;
 };
 
-function runCommand(command: string, args: string[], timeoutMs = 8_000) {
-  return new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
-    const proc = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    const timeout = setTimeout(() => proc.kill(), timeoutMs);
+async function appServerProbe(timeoutMs = 8_000) {
+  const proc = await spawnCodex(["app-server"]);
 
-    proc.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    proc.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    proc.on("error", (error) => {
-      clearTimeout(timeout);
-      resolve({ code: 1, stdout, stderr: error.message });
-    });
-    proc.on("close", (code) => {
-      clearTimeout(timeout);
-      resolve({ code, stdout, stderr });
-    });
-  });
-}
-
-function appServerProbe(timeoutMs = 8_000) {
   return new Promise<{
     init?: { codexHome?: string; userAgent?: string };
     auth?: { authMethod?: string; requiresOpenaiAuth?: boolean };
   }>((resolve, reject) => {
-    const proc = spawn("codex", ["app-server"], { stdio: ["pipe", "pipe", "pipe"] });
     let nextId = 1;
     let buffer = "";
     const pending = new Map<number, (message: JsonRpcMessage) => void>();
@@ -116,19 +95,20 @@ function appServerProbe(timeoutMs = 8_000) {
 }
 
 export async function getCodexAuthStatus(): Promise<CodexAuthStatus> {
-  const cli = await runCommand("codex", ["login", "status"]);
-  if (cli.code !== 0) {
+  const cli = await runCodexCommand(["login", "status"]);
+  if (cli.notFound) {
     return {
       available: false,
       loggedIn: false,
       method: "unknown",
       statusText: "Codex CLI unavailable",
+      appServerAvailable: false,
       error: cli.stderr || cli.stdout || "codex login status failed",
     };
   }
 
   const statusText = cli.stdout.trim() || cli.stderr.trim() || "Unknown";
-  const cliLoggedIn = /logged in/i.test(statusText);
+  const cliLoggedIn = /logged in/i.test(statusText) && !/not logged in/i.test(statusText);
 
   try {
     const probe = await appServerProbe();
@@ -139,6 +119,8 @@ export async function getCodexAuthStatus(): Promise<CodexAuthStatus> {
       loggedIn,
       method,
       statusText,
+      appServerAvailable: true,
+      binaryPath: cli.binaryPath,
       codexHome: probe.init?.codexHome,
       userAgent: probe.init?.userAgent,
     };
@@ -148,6 +130,8 @@ export async function getCodexAuthStatus(): Promise<CodexAuthStatus> {
       loggedIn: cliLoggedIn,
       method: statusText.replace(/^Logged in using\s+/i, "") || "unknown",
       statusText,
+      appServerAvailable: false,
+      binaryPath: cli.binaryPath,
       error: error instanceof Error ? error.message : String(error),
     };
   }
