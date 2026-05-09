@@ -25,10 +25,21 @@ Because the app is not code-signed yet, browsers, macOS, or Windows may show a s
 Unsigned desktop apps are often marked as uncommon downloads.
 
 - Chrome / Edge: open the Downloads panel, choose `Keep`, then `Keep anyway`.
-- macOS: if the app is blocked on first launch, open it once from Finder using right click -> `Open`.
+- macOS: if the app is blocked on first launch, open it once to show the warning, then go to `System Settings` / `システム設定` -> `Privacy & Security` / `プライバシーとセキュリティ`, scroll down, click `Open Anyway` / `このまま開く`, and open the app again.
 - Windows: if SmartScreen appears, choose `More info` -> `Run anyway`.
 
 Only download files from the official Release page above.
+
+### macOS First Launch
+
+Because the macOS build is not notarized yet, the first launch may be blocked by Gatekeeper. This is expected for unsigned local builds.
+
+1. Try to open `Research Dojo.app` once and let macOS show the warning.
+2. Open `System Settings` / `システム設定` -> `Privacy & Security` / `プライバシーとセキュリティ`.
+3. Scroll down and click `Open Anyway` / `このまま開く` for `Research Dojo.app`.
+4. Open `Research Dojo.app` again and confirm `Open`.
+
+After this, macOS saves the exception and the app can be opened normally.
 
 ## MVP Screens
 
