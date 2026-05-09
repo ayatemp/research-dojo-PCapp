@@ -14,11 +14,21 @@ https://github.com/ayatemp/research-dojo-PCapp/releases/latest
 
 - macOS Apple Silicon: download `Research-Dojo-*-mac-arm64.dmg`
 - macOS Intel: download `Research-Dojo-*-mac-x64.dmg`
-- Windows: download `Research-Dojo-Setup-*-win-x64.exe`
+- Windows: download `Research-Dojo-*-win-x64.zip` if your browser blocks `.exe`; otherwise use `Research-Dojo-Setup-*-win-x64.exe`
 
 The app runs locally on your computer. Paper data, answers, reviews, and idea notes are stored in the app data folder, not on Vercel.
 
-Because the app is not code-signed yet, macOS or Windows may show a security warning on first launch. For public distribution without warnings, add Apple Developer / Windows code signing later.
+Because the app is not code-signed yet, browsers, macOS, or Windows may show a security warning on download or first launch. If Chrome or Edge blocks the Windows installer, use the `.zip` download instead. For public distribution without warnings, add Apple Developer notarization and Windows code signing later.
+
+### Download Warning Notes
+
+Unsigned desktop apps are often marked as uncommon downloads.
+
+- Chrome / Edge: open the Downloads panel, choose `Keep`, then `Keep anyway`.
+- macOS: if the app is blocked on first launch, open it once from Finder using right click -> `Open`.
+- Windows: if SmartScreen appears, choose `More info` -> `Run anyway`.
+
+Only download files from the official Release page above.
 
 ## MVP Screens
 

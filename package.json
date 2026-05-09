@@ -1,6 +1,6 @@
 {
   "name": "research-dojo-pcapp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "A local desktop-first Research Dojo app that keeps papers, reviews, ideas, and Codex practice loops on this computer.",
   "main": "desktop/main.cjs",
@@ -20,7 +20,7 @@
     "make:mac": "node desktop/create-mac-app.mjs",
     "dist": "npm run build && electron-builder --publish never",
     "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never",
-    "dist:win": "npm run build && electron-builder --win nsis portable --publish never"
+    "dist:win": "npm run build && electron-builder --win nsis portable zip --publish never"
   },
   "build": {
     "appId": "com.ayatemp.researchdojo",
@@ -89,8 +89,10 @@
       "icon": "assets/research-dojo-icon.ico",
       "target": [
         "nsis",
-        "portable"
-      ]
+        "portable",
+        "zip"
+      ],
+      "artifactName": "Research-Dojo-${version}-win-${arch}.${ext}"
     },
     "nsis": {
       "artifactName": "Research-Dojo-Setup-${version}-win-${arch}.${ext}",
