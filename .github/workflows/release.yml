@@ -1,0 +1,88 @@
+name: Build Desktop Releases
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS x64
+            os: macos-15-intel
+            script: npm run dist:mac -- --x64
+            artifact: mac-x64
+          - name: macOS arm64
+            os: macos-15
+            script: npm run dist:mac -- --arm64
+            artifact: mac-arm64
+          - name: Windows x64
+            os: windows-latest
+            script: npm run dist:win -- --x64
+            artifact: windows-x64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build app package
+        run: ${{ matrix.script }}
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-dojo-${{ matrix.artifact }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest*.yml
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG_NAME" release-artifacts/* \
+            --title "Research Dojo ${TAG_NAME}" \
+            --notes "Research Dojo desktop app release. Download the macOS DMG for your Mac architecture, or the Windows installer/portable EXE for Windows." \
+            --latest

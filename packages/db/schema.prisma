@@ -1,0 +1,195 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String?
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  sessions     Session[]
+  projects     Project[]
+  answers      Answer[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Project {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  name        String
+  theme       String?
+  description String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents   Document[]
+  ideas       Idea[]
+  codexTasks  CodexTask[]
+  repoPaths   RepoPath[]
+
+  @@map("projects")
+}
+
+model RepoPath {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+  path      String
+  label     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, path])
+  @@map("repo_paths")
+}
+
+model Document {
+  id            String      @id @default(cuid())
+  projectId     String      @map("project_id")
+  type          String      @default("paper")
+  title         String
+  sourceUrl     String?     @map("source_url")
+  filePath      String?     @map("file_path")
+  extractedText String      @default("") @map("extracted_text")
+  metadata      Json?
+  createdAt     DateTime    @default(now()) @map("created_at")
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  paperCard     PaperCard?
+  questions     Question[]
+
+  @@map("documents")
+}
+
+model PaperCard {
+  id                 String   @id @default(cuid())
+  documentId          String   @unique @map("document_id")
+  oneLineSummary      String   @default("") @map("one_line_summary")
+  problem             String   @default("")
+  priorWeakness       String   @default("") @map("prior_weakness")
+  coreMethod          String   @default("") @map("core_method")
+  mechanism           String   @default("")
+  assumptions         String   @default("")
+  limitations         String   @default("")
+  researchConnection  String   @default("") @map("research_connection")
+  createdAt           DateTime @default(now()) @map("created_at")
+  document            Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("paper_cards")
+}
+
+model Question {
+  id             String   @id @default(cuid())
+  documentId      String   @map("document_id")
+  type            String
+  question        String
+  expectedPoints  Json     @map("expected_points")
+  difficulty      Int
+  createdAt       DateTime @default(now()) @map("created_at")
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  answers         Answer[]
+
+  @@map("questions")
+}
+
+model Answer {
+  id             String   @id @default(cuid())
+  questionId     String   @map("question_id")
+  userId         String   @map("user_id")
+  answerText     String   @map("answer_text")
+  revisionOfId   String?  @map("revision_of_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  question       Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revisionOf     Answer?  @relation("AnswerRevisions", fields: [revisionOfId], references: [id])
+  revisions      Answer[] @relation("AnswerRevisions")
+  reviews        Review[]
+
+  @@map("answers")
+}
+
+model Review {
+  id                  String   @id @default(cuid())
+  answerId             String   @map("answer_id")
+  totalScore           Int      @map("total_score")
+  decision             String
+  rubricScores         Json     @map("rubric_scores")
+  strengths            Json
+  fatalIssues          Json     @map("fatal_issues")
+  missingPerspectives  Json     @map("missing_perspectives")
+  shallowPhrases       Json     @map("shallow_phrases")
+  nextFix              String   @map("next_fix")
+  revisionChallenge    String   @map("revision_challenge")
+  reviewerComments     Json    @map("reviewer_comments")
+  rawOutput            String  @default("") @map("raw_output")
+  createdAt            DateTime @default(now()) @map("created_at")
+  answer               Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Idea {
+  id                   String   @id @default(cuid())
+  projectId             String   @map("project_id")
+  rawIdea               String   @map("raw_idea")
+  researchHypothesis    String   @default("") @map("research_hypothesis")
+  coreClaim             String   @default("") @map("core_claim")
+  noveltyCandidates     Json     @default("[]") @map("novelty_candidates")
+  methodSketch          String   @default("") @map("method_sketch")
+  experimentPlan        Json     @default("[]") @map("experiment_plan")
+  baselines             Json     @default("[]")
+  ablations             Json     @default("[]")
+  expectedFailureCases  Json     @default("[]") @map("expected_failure_cases")
+  reviewerRisks         Json     @default("[]") @map("reviewer_risks")
+  codexTaskPrompt       String   @default("") @map("codex_task_prompt")
+  rawOutput             String   @default("") @map("raw_output")
+  createdAt             DateTime @default(now()) @map("created_at")
+  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("ideas")
+}
+
+model CodexTask {
+  id            String           @id @default(cuid())
+  projectId     String           @map("project_id")
+  repoPath      String           @map("repo_path")
+  prompt        String
+  status        String           @default("queued")
+  threadId      String?          @map("thread_id")
+  turnId        String?          @map("turn_id")
+  resultSummary String           @default("") @map("result_summary")
+  diffText      String           @default("") @map("diff_text")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events        CodexTaskEvent[]
+
+  @@map("codex_tasks")
+}
+
+model CodexTaskEvent {
+  id        String    @id @default(cuid())
+  taskId    String    @map("task_id")
+  type      String
+  message   String
+  payload   Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+  task      CodexTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("codex_task_events")
+}

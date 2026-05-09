@@ -1,0 +1,108 @@
+{
+  "name": "research-dojo-pcapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local desktop-first Research Dojo app that keeps papers, reviews, ideas, and Codex practice loops on this computer.",
+  "main": "desktop/main.cjs",
+  "author": "Ayato Kaku",
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @research-dojo/web run dev",
+    "build": "npm --workspace @research-dojo/web run build",
+    "start": "npm --workspace @research-dojo/web run start",
+    "lint": "npm --workspace @research-dojo/web run lint",
+    "typecheck": "npm --workspace @research-dojo/web run typecheck",
+    "pcapp": "node desktop/run-electron.mjs",
+    "pcapp:rebuild": "RESEARCH_DOJO_FORCE_BUILD=1 node desktop/run-electron.mjs",
+    "make:mac": "node desktop/create-mac-app.mjs",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never",
+    "dist:win": "npm run build && electron-builder --win nsis portable --publish never"
+  },
+  "build": {
+    "appId": "com.ayatemp.researchdojo",
+    "productName": "Research Dojo",
+    "copyright": "Copyright © 2026 Ayato Kaku",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop/main.cjs",
+      "assets/research-dojo-icon.png",
+      "assets/research-dojo-icon.icns",
+      "assets/research-dojo-icon.ico",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "apps/web/.next/standalone",
+        "to": "next-standalone",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "apps/web/.next/standalone/node_modules",
+        "to": "next-standalone/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "apps/web/.next/static",
+        "to": "next-standalone/apps/web/.next/static",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "apps/web/public",
+        "to": "next-standalone/apps/web/public",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "node_modules/sql.js/dist",
+        "to": "next-standalone/node_modules/sql.js/dist",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "icon": "assets/research-dojo-icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "artifactName": "Research-Dojo-${version}-mac-${arch}.${ext}"
+    },
+    "win": {
+      "icon": "assets/research-dojo-icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "artifactName": "Research-Dojo-Setup-${version}-win-${arch}.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "Research-Dojo-Portable-${version}-win-${arch}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.8.1"
+  }
+}

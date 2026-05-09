@@ -1,0 +1,103 @@
+# Research Dojo
+
+Research Dojo is a research training app that keeps the loop fixed:
+
+`読む -> 自分で答える -> 厳しく採点される -> 修正する -> 再提出する -> 実装タスクに落とす`
+
+The app intentionally avoids a chat-first shape. The core objects are Question, Answer, Review, Revision, Experiment, and Codex Task.
+
+## Desktop Downloads
+
+Packaged desktop builds are published on GitHub Releases:
+
+https://github.com/ayatemp/research-dojo-PCapp/releases/latest
+
+- macOS Apple Silicon: download `Research-Dojo-*-mac-arm64.dmg`
+- macOS Intel: download `Research-Dojo-*-mac-x64.dmg`
+- Windows: download `Research-Dojo-Setup-*-win-x64.exe`
+
+The app runs locally on your computer. Paper data, answers, reviews, and idea notes are stored in the app data folder, not on Vercel.
+
+Because the app is not code-signed yet, macOS or Windows may show a security warning on first launch. For public distribution without warnings, add Apple Developer / Windows code signing later.
+
+## MVP Screens
+
+- `/dashboard` - daily training, score trend, weak-point ranking, pending revisions
+- `/papers` - paper list, upload/search surface, paper card preview
+- `/papers/[id]/train` - question set, answer form, strict review, revision challenge
+- `/ideas` - rough idea to hypothesis, novelty candidates, experiments, Codex task prompt
+- `/codex-tasks` - task queue, bridge progress, approval gate
+
+## Repository Layout
+
+```text
+research-dojo/
+  apps/
+    web/                 # Next.js app
+  packages/
+    ai/                  # prompts, schemas, review helpers
+    codex-bridge/        # stdio bridge skeleton for codex app-server
+    db/                  # relational schema reference
+  docs/                  # product and architecture notes
+```
+
+## Development
+
+```bash
+npm install
+npm run dev
+npm run build
+```
+
+## Build Desktop Installers
+
+```bash
+npm run dist:mac
+npm run dist:win
+```
+
+Release builds are normally created by `.github/workflows/release.yml` when a `v*` tag is pushed.
+
+## Codex-Only AI
+
+Research Dojo does not use an OpenAI API key. Paper Card generation, question generation, strict review, idea refinement, and implementation tasks all go through `codex app-server`.
+
+Before using the app:
+
+```bash
+codex login status
+```
+
+If Codex is not logged in, run:
+
+```bash
+codex login
+```
+
+## Local Database
+
+The app persists users, sessions, papers, questions, answers, reviews, ideas, repo registrations, and Codex tasks to a local SQLite file powered by `sql.js`.
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Default DB path:
+
+```text
+apps/web/.data/research-dojo.sqlite
+```
+
+## What Works Now
+
+- Email/password login with HTTP-only sessions
+- Project auto-creation after signup
+- Paper/memo text persistence
+- Codex-generated Paper Cards and question sets
+- User answer persistence
+- Codex strict review with structured JSON saved to DB
+- Idea-to-experiment refinement through Codex
+- Local repo registration
+- Codex implementation task creation and execution through `codex app-server`
+
+This is designed as a local-first/self-hosted app. Because Codex can edit local repositories, production deployment should run in an environment where the owner intentionally installed and logged into Codex.
