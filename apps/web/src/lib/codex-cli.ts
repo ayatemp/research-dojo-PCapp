@@ -5,7 +5,9 @@ import {
   type ChildProcessWithoutNullStreams,
   type SpawnOptions,
 } from "node:child_process";
+import fs from "node:fs";
 import os from "node:os";
+import path from "node:path";
 
 export type CodexCommandResult = {
   code: number | null;
@@ -17,6 +19,32 @@ export type CodexCommandResult = {
 
 function unique(values: string[]) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function isWindowsRunnableShim(filePath: string) {
+  return [".cmd", ".bat", ".exe"].includes(path.extname(filePath).toLowerCase());
+}
+
+function selectCodexBinary(candidates: string[]) {
+  const normalized = unique(
+    candidates
+      .map((candidate) => candidate.trim().replace(/^"|"$/g, ""))
+      .filter(Boolean),
+  );
+
+  if (process.platform !== "win32") return normalized[0] ?? "";
+
+  const runnableShim = normalized.find(isWindowsRunnableShim);
+  if (runnableShim) return runnableShim;
+
+  for (const candidate of normalized) {
+    for (const extension of [".cmd", ".bat", ".exe"]) {
+      const suffixed = `${candidate}${extension}`;
+      if (fs.existsSync(suffixed)) return suffixed;
+    }
+  }
+
+  return normalized[0] ?? "";
 }
 
 function commonBinDirs() {
@@ -87,13 +115,13 @@ async function discoverWithShell() {
       stdout += chunk.toString();
     });
     proc.on("error", () => resolve(""));
-    proc.on("close", () => resolve(stdout.trim().split("\n")[0] ?? ""));
+    proc.on("close", () => resolve(selectCodexBinary(stdout.split(/\r?\n/))));
   });
 }
 
 export async function resolveCodexBinary() {
   const explicit = process.env.CODEX_BINARY;
-  if (explicit) return explicit;
+  if (explicit) return selectCodexBinary([explicit]);
 
   const shellResult = await discoverWithShell();
   if (shellResult) return shellResult;
@@ -114,7 +142,7 @@ export async function spawnCodex(
 
   const spawnOptions: SpawnOptions = {
     env: createCodexEnv(options.env) as NodeJS.ProcessEnv,
-    shell: process.platform === "win32" && binaryPath.endsWith(".cmd"),
+    shell: process.platform === "win32" && [".cmd", ".bat"].includes(path.extname(binaryPath).toLowerCase()),
     stdio: ["pipe", "pipe", "pipe"],
     ...(options.cwd ? { cwd: options.cwd } : {}),
   } as const;
@@ -139,7 +167,7 @@ export async function runCodexCommand(
   return new Promise<CodexCommandResult>((resolve) => {
     const spawnOptions: SpawnOptions = {
       env: createCodexEnv(options.env) as NodeJS.ProcessEnv,
-      shell: process.platform === "win32" && binaryPath.endsWith(".cmd"),
+      shell: process.platform === "win32" && [".cmd", ".bat"].includes(path.extname(binaryPath).toLowerCase()),
       stdio: ["pipe", "pipe", "pipe"],
       ...(options.cwd ? { cwd: options.cwd } : {}),
     };
