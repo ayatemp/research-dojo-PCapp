@@ -20,6 +20,13 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function useSecureCookies() {
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.RESEARCH_DOJO_INSECURE_COOKIES !== "1"
+  );
+}
+
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const derived = (await scrypt(password, salt, 64)) as Buffer;
@@ -49,7 +56,7 @@ export async function createSession(userId: string) {
   cookieStore.set(sessionCookie, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: useSecureCookies(),
     path: "/",
     expires: expiresAt,
   });

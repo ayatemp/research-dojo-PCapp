@@ -242,7 +242,7 @@ export function AppShell({
         className="transition-[padding] duration-200 lg:pl-[var(--sidebar-width)]"
         style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}
       >
-        <header className="sticky top-0 z-20 border-b border-white/10 bg-[#06101d]/92 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <header className="border-b border-white/10 bg-[#06101d]/92 px-4 py-3 backdrop-blur-xl lg:hidden">
           <div className="flex items-center gap-3">
             <BrandMark className="scale-75" />
             <span className="text-sm font-bold tracking-normal text-white">

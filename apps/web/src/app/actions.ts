@@ -52,6 +52,13 @@ function field(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
+function useSecureCookies() {
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.RESEARCH_DOJO_INSECURE_COOKIES !== "1"
+  );
+}
+
 export type CodexRoomMessage = {
   role: "user" | "codex";
   content: string;
@@ -186,7 +193,7 @@ export async function updateDisplayPreferenceAction(formData: FormData) {
   cookieStore.set("research_dojo_content_width", value, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: useSecureCookies(),
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
