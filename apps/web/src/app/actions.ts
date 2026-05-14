@@ -37,6 +37,7 @@ import {
   getTrainingDocument,
   getPaperIdeaSeeds,
   latestAnswerReviews,
+  normalizeKeywords,
   registerRepo,
   saveAnswerReview,
   saveIdea,
@@ -208,6 +209,7 @@ export async function createPaperAction(formData: FormData) {
   const titleInput = field(formData, "title");
   const sourceUrl = field(formData, "sourceUrl");
   const textInput = field(formData, "text");
+  const keywords = normalizeKeywords(field(formData, "keywords"));
   const localFilePath = field(formData, "localFilePath");
   const paperFileValue = formData.get("paperFile");
   const paperFile =
@@ -229,7 +231,9 @@ export async function createPaperAction(formData: FormData) {
       .filter(Boolean)
       .join("\n\n")
       .trim();
-    const documentId = await createDocument(project.id, title, text, parsed.sourceLabel);
+    const documentId = await createDocument(project.id, title, text, parsed.sourceLabel, {
+      keywords,
+    });
     redirect(`/papers/${documentId}/train`);
   }
 
@@ -244,7 +248,9 @@ export async function createPaperAction(formData: FormData) {
     .trim();
   if (!title || !text) redirect("/papers?error=missing");
 
-  const documentId = await createDocument(project.id, title, text, sourceUrl || undefined);
+  const documentId = await createDocument(project.id, title, text, sourceUrl || undefined, {
+    keywords,
+  });
   redirect(`/papers/${documentId}/train`);
 }
 
@@ -261,6 +267,7 @@ AIは答えを先に出す先生ではなく、ユーザーの思考を鍛える
 制約:
 - 日本語で書く
 - 単なる要約ではなく、問題設定、既存研究の弱点、提案手法の核、仮定、失敗条件、自分の研究への接続を書く
+- paper_card.keywordsにはAbstract下のKeywordsのような分野タグを3〜8個入れる。例: Federated Learning, Graph Neural Networks, Evaluation
 - 問題は暗記問題ではなく、メカニズム説明、失敗条件、実験設計、研究拡張、査読者視点を重視する
 - 出力はJSONのみ
 

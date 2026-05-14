@@ -74,6 +74,18 @@ export default async function TrainPage({
         {data.card ? (
           <Panel>
             <SectionHeader eyebrow="Paper Card" title="研究者向けカード" />
+            {decodeJson<string[]>(data.card.keywords, []).length ? (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {decodeJson<string[]>(data.card.keywords, []).map((keyword) => (
+                  <span
+                    key={keyword}
+                    className="rounded-md bg-cyan-500/10 px-2 py-1 text-xs text-cyan-100/85"
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <div className="grid gap-4 lg:grid-cols-2">
               {[
                 ["一言要約", data.card.one_line_summary],

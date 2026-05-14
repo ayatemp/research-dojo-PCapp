@@ -109,6 +109,7 @@ function migrate(db: Database) {
     CREATE TABLE IF NOT EXISTS paper_cards (
       id TEXT PRIMARY KEY,
       document_id TEXT NOT NULL UNIQUE,
+      keywords TEXT NOT NULL DEFAULT '[]',
       one_line_summary TEXT NOT NULL DEFAULT '',
       problem TEXT NOT NULL DEFAULT '',
       prior_weakness TEXT NOT NULL DEFAULT '',
@@ -304,6 +305,8 @@ function migrate(db: Database) {
     "ALTER TABLE questions ADD COLUMN target_weakness TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE questions ADD COLUMN focus_reason TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE reviews ADD COLUMN reading_gaps TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE documents ADD COLUMN metadata TEXT",
+    "ALTER TABLE paper_cards ADD COLUMN keywords TEXT NOT NULL DEFAULT '[]'",
   ]) {
     try {
       db.run(statement);

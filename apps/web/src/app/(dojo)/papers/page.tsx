@@ -8,22 +8,33 @@ import {
   Lightbulb,
   Link2,
   Search,
+  Tag,
 } from "lucide-react";
 import { createPaperAction } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { ensureDefaultProject, getDocuments } from "@/lib/store";
 import { LocalPaperImporter } from "@/components/local-paper-importer";
+import { MarkdownNoteEditor } from "@/components/markdown-note-editor";
 import { Panel, Pill, ScoreMeter, SectionHeader } from "@/components/ui";
 
 export default async function PapersPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{ error?: string; tag?: string }>;
 }) {
   const user = await requireUser();
   const project = await ensureDefaultProject(user);
   const papers = await getDocuments(project.id);
   const params = await searchParams;
+  const activeTag = params?.tag?.trim() ?? "";
+  const allTags = Array.from(
+    new Set(papers.flatMap((paper) => paper.tags).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b));
+  const visiblePapers = activeTag
+    ? papers.filter((paper) =>
+        paper.tags.some((tag) => tag.toLocaleLowerCase() === activeTag.toLocaleLowerCase()),
+      )
+    : papers;
   const errorMessage =
     params?.error === "file"
       ? "ファイルを読み取れませんでした。PDF/TXT/Markdownを選ぶか、コピー可能な本文が含まれるPDFを使ってください。"
@@ -75,10 +86,42 @@ export default async function PapersPage({
         </div>
       </div>
 
+      {allTags.length ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex h-9 items-center gap-2 text-sm font-medium text-slate-400">
+            <Tag className="size-4" />
+            タグ
+          </span>
+          <Link
+            href="/papers"
+            className={`inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium ${
+              activeTag
+                ? "border-white/10 bg-[#0b1423]/75 text-slate-300 hover:bg-white/[0.06]"
+                : "border-violet-300/30 bg-violet-500/18 text-violet-100"
+            }`}
+          >
+            すべて
+          </Link>
+          {allTags.map((tag) => (
+            <Link
+              key={tag}
+              href={`/papers?tag=${encodeURIComponent(tag)}`}
+              className={`inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium ${
+                activeTag.toLocaleLowerCase() === tag.toLocaleLowerCase()
+                  ? "border-cyan-300/35 bg-cyan-500/18 text-cyan-100"
+                  : "border-white/10 bg-[#0b1423]/75 text-slate-300 hover:bg-white/[0.06]"
+              }`}
+            >
+              {tag}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+
       <Panel className="p-0">
-        {papers.length ? (
+        {visiblePapers.length ? (
           <div className="divide-y divide-white/10">
-            {papers.map((paper) => (
+            {visiblePapers.map((paper) => (
               <div
                 key={paper.id}
                 className="grid gap-4 p-5 hover:bg-white/[0.035] md:grid-cols-[44px_minmax(0,1fr)_110px_150px_300px] md:items-center"
@@ -91,18 +134,20 @@ export default async function PapersPage({
                     {paper.title}
                   </h2>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {paper.extracted_text
-                      .split(/[、。,. ]/)
-                      .filter((token) => token.length >= 4)
-                      .slice(0, 3)
-                      .map((token) => (
+                    {paper.tags.length ? (
+                      paper.tags.slice(0, 5).map((tag) => (
                         <span
-                          key={`${paper.id}-${token}`}
-                          className="rounded-md bg-white/[0.06] px-2 py-1 text-xs text-slate-400"
+                          key={`${paper.id}-${tag}`}
+                          className="rounded-md bg-cyan-500/10 px-2 py-1 text-xs text-cyan-100/85"
                         >
-                          {token.slice(0, 18)}
+                          {tag}
                         </span>
-                      ))}
+                      ))
+                    ) : (
+                      <span className="rounded-md bg-white/[0.06] px-2 py-1 text-xs text-slate-500">
+                        タグ未設定
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -145,9 +190,13 @@ export default async function PapersPage({
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
-            <p className="text-base font-medium text-white">まだ保存済み論文はありません。</p>
+            <p className="text-base font-medium text-white">
+              {papers.length ? "このタグの論文はありません。" : "まだ保存済み論文はありません。"}
+            </p>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              arXiv URLだけでも始められます。タイトルとabstractを取れたら自動で埋めて保存します。
+              {papers.length
+                ? "別のタグを選ぶか、Paper Card生成時にキーワードを追加してください。"
+                : "arXiv URLだけでも始められます。タイトルとabstractを取れたら自動で埋めて保存します。"}
             </p>
           </div>
         )}
@@ -196,12 +245,22 @@ export default async function PapersPage({
 
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-200">
+              タグ <span className="text-slate-500">任意。カンマ区切り</span>
+            </span>
+            <input
+              name="keywords"
+              placeholder="例: LLM Agents, Retrieval, Human Evaluation"
+              className="h-11 rounded-md border border-white/10 bg-slate-950/45 px-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-violet-300/60"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-slate-200">
               本文・補足メモ <span className="text-slate-500">任意。PDF本文、abstract、自分の読みメモ</span>
             </span>
-            <textarea
+            <MarkdownNoteEditor
               name="text"
               placeholder="URLからabstractを取れない場合や、自分のメモも一緒にTrainerへ渡したい場合に使います。"
-              className="min-h-40 rounded-md border border-white/10 bg-slate-950/45 p-3 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-500 focus:border-violet-300/60"
             />
           </label>
 

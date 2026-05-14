@@ -44,7 +44,7 @@ After this, macOS saves the exception and the app can be opened normally.
 ## MVP Screens
 
 - `/dashboard` - daily training, score trend, weak-point ranking, pending revisions
-- `/papers` - paper list, URL import, local PDF/TXT/Markdown import, paper card preview
+- `/papers` - paper list, tag filtering, URL import, local PDF/TXT/Markdown import, paper card preview
 - `/papers/[id]/train` - question set, answer form, strict review, revision challenge
 - `/ideas` - rough idea to hypothesis, novelty candidates, experiments, Codex task prompt
 - `/codex-tasks` - task queue, bridge progress, approval gate
@@ -116,6 +116,8 @@ apps/web/.data/research-dojo.sqlite
 - Email/password login with HTTP-only sessions
 - Project auto-creation after signup
 - Paper/memo text persistence from URLs or local PDF/TXT/Markdown files
+- Paper Room tag filtering from manual tags and Codex-generated paper keywords
+- Markdown-style paper notes with bold, italic, and underline shortcuts
 - Codex-generated Paper Cards and question sets
 - User answer persistence
 - Codex strict review with structured JSON saved to DB

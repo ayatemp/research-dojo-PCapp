@@ -30,6 +30,7 @@ export type DocumentRow = {
   type: string;
   title: string;
   source_url: string | null;
+  metadata: string | null;
   extracted_text: string;
   created_at: string;
 };
@@ -50,6 +51,7 @@ export type QuestionRow = {
 export type PaperCardRow = {
   id: string;
   document_id: string;
+  keywords: string;
   one_line_summary: string;
   problem: string;
   prior_weakness: string;
@@ -58,6 +60,13 @@ export type PaperCardRow = {
   assumptions: string;
   limitations: string;
   research_connection: string;
+};
+
+export type PaperListRow = DocumentRow & {
+  question_count: number;
+  latest_score: number | null;
+  card_keywords: string | null;
+  tags: string[];
 };
 
 export type PaperIdeaSeedRow = {
@@ -146,12 +155,41 @@ export async function ensureDefaultProject(user: CurrentUser) {
   return (await get<ProjectRow>("SELECT * FROM projects WHERE id = ?", [projectId]))!;
 }
 
-export async function createDocument(projectId: string, title: string, text: string, sourceUrl?: string) {
+function cleanKeyword(keyword: string) {
+  return keyword.trim().replace(/^#+/, "").replace(/\s+/g, " ").slice(0, 48);
+}
+
+export function normalizeKeywords(input: string | string[] | null | undefined) {
+  const raw = Array.isArray(input) ? input : (input ?? "").split(/[,\n、;；]/);
+  const seen = new Set<string>();
+  const keywords: string[] = [];
+  for (const item of raw) {
+    const keyword = cleanKeyword(item);
+    const key = keyword.toLocaleLowerCase();
+    if (!keyword || seen.has(key)) continue;
+    seen.add(key);
+    keywords.push(keyword);
+    if (keywords.length >= 12) break;
+  }
+  return keywords;
+}
+
+function mergeKeywords(...groups: Array<string[]>) {
+  return normalizeKeywords(groups.flat());
+}
+
+export async function createDocument(
+  projectId: string,
+  title: string,
+  text: string,
+  sourceUrl?: string,
+  metadata?: Record<string, unknown>,
+) {
   const documentId = id("doc");
   await run(
-    `INSERT INTO documents (id, project_id, title, extracted_text, source_url)
-     VALUES (?, ?, ?, ?, ?)`,
-    [documentId, projectId, title, text, sourceUrl ?? null],
+    `INSERT INTO documents (id, project_id, title, extracted_text, source_url, metadata)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [documentId, projectId, title, text, sourceUrl ?? null, metadata ? encodeJson(metadata) : null],
   );
   return documentId;
 }
@@ -162,12 +200,13 @@ export async function savePaperGeneration(documentId: string, result: PaperGener
     db.run("DELETE FROM questions WHERE document_id = ?", [documentId]);
     db.run(
       `INSERT INTO paper_cards (
-        id, document_id, one_line_summary, problem, prior_weakness, core_method,
+        id, document_id, keywords, one_line_summary, problem, prior_weakness, core_method,
         mechanism, assumptions, limitations, research_connection
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id("card"),
         documentId,
+        encodeJson(normalizeKeywords(result.paper_card.keywords)),
         result.paper_card.one_line_summary,
         result.paper_card.problem,
         result.paper_card.prior_weakness,
@@ -197,11 +236,19 @@ export async function savePaperGeneration(documentId: string, result: PaperGener
 }
 
 export async function getDocuments(projectId: string) {
-  return all<DocumentRow & { question_count: number; latest_score: number | null }>(
+  const rows = await all<
+    DocumentRow & {
+      question_count: number;
+      latest_score: number | null;
+      card_keywords: string | null;
+    }
+  >(
     `SELECT documents.*,
+            paper_cards.keywords AS card_keywords,
             COUNT(DISTINCT questions.id) AS question_count,
             MAX(reviews.total_score) AS latest_score
        FROM documents
+       LEFT JOIN paper_cards ON paper_cards.document_id = documents.id
        LEFT JOIN questions ON questions.document_id = documents.id
        LEFT JOIN answers ON answers.question_id = questions.id
        LEFT JOIN reviews ON reviews.answer_id = answers.id
@@ -210,6 +257,16 @@ export async function getDocuments(projectId: string) {
       ORDER BY documents.created_at DESC`,
     [projectId],
   );
+  return rows.map((row) => {
+    const metadata = decodeJson<{ keywords?: string[] }>(row.metadata, {});
+    return {
+      ...row,
+      tags: mergeKeywords(
+        normalizeKeywords(metadata.keywords ?? []),
+        normalizeKeywords(decodeJson<string[]>(row.card_keywords, [])),
+      ),
+    };
+  }) satisfies PaperListRow[];
 }
 
 export async function getTrainingDocument(documentId: string) {

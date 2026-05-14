@@ -7,6 +7,7 @@ export const paperGenerationSchema = {
       type: "object",
       additionalProperties: false,
       required: [
+        "keywords",
         "one_line_summary",
         "problem",
         "prior_weakness",
@@ -17,6 +18,12 @@ export const paperGenerationSchema = {
         "research_connection",
       ],
       properties: {
+        keywords: {
+          type: "array",
+          minItems: 3,
+          maxItems: 8,
+          items: { type: "string" },
+        },
         one_line_summary: { type: "string" },
         problem: { type: "string" },
         prior_weakness: { type: "string" },
@@ -431,6 +438,7 @@ export const researchLensSchema = {
 
 export type PaperGenerationResult = {
   paper_card: {
+    keywords: string[];
     one_line_summary: string;
     problem: string;
     prior_weakness: string;

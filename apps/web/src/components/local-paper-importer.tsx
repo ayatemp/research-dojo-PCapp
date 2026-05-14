@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { FolderOpen, Loader2, UploadCloud } from "lucide-react";
 import { createPaperAction } from "@/app/actions";
+import { MarkdownNoteEditor } from "@/components/markdown-note-editor";
 
 const supportedExtensions = [".pdf", ".txt", ".md", ".markdown"];
 
@@ -26,6 +27,7 @@ export function LocalPaperImporter() {
   const [files, setFiles] = useState<File[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [title, setTitle] = useState("");
+  const [keywords, setKeywords] = useState("");
   const [notes, setNotes] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -48,6 +50,7 @@ export function LocalPaperImporter() {
     const formData = new FormData();
     formData.set("title", selectedTitle);
     formData.set("sourceUrl", "");
+    formData.set("keywords", keywords);
     formData.set("text", notes);
     formData.set("paperFile", selectedFile);
     formData.set("localFilePath", filePath(selectedFile));
@@ -139,12 +142,25 @@ export function LocalPaperImporter() {
             </label>
 
             <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-200">
+                タグ <span className="text-slate-500">任意。カンマ区切り</span>
+              </span>
+              <input
+                value={keywords}
+                onChange={(event) => setKeywords(event.target.value)}
+                placeholder="例: Federated Learning, Medical AI, Evaluation"
+                className="h-11 rounded-md border border-white/10 bg-slate-950/45 px-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-300/60"
+              />
+            </label>
+
+            <label className="grid gap-2">
               <span className="text-sm font-medium text-slate-200">補足メモ</span>
-              <textarea
+              <MarkdownNoteEditor
+                name="localText"
                 value={notes}
-                onChange={(event) => setNotes(event.target.value)}
+                onChange={setNotes}
                 placeholder="この論文で注目したい観点、自分の研究との接続など"
-                className="min-h-24 rounded-md border border-white/10 bg-slate-950/45 p-3 text-sm leading-6 text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-300/60"
+                minHeightClassName="min-h-24"
               />
             </label>
 
