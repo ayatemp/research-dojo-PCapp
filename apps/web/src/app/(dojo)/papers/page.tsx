@@ -12,12 +12,24 @@ import {
 import { createPaperAction } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { ensureDefaultProject, getDocuments } from "@/lib/store";
+import { LocalPaperImporter } from "@/components/local-paper-importer";
 import { Panel, Pill, ScoreMeter, SectionHeader } from "@/components/ui";
 
-export default async function PapersPage() {
+export default async function PapersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
   const user = await requireUser();
   const project = await ensureDefaultProject(user);
   const papers = await getDocuments(project.id);
+  const params = await searchParams;
+  const errorMessage =
+    params?.error === "file"
+      ? "ファイルを読み取れませんでした。PDF/TXT/Markdownを選ぶか、コピー可能な本文が含まれるPDFを使ってください。"
+      : params?.error === "missing"
+        ? "URL、ローカルファイル、または本文メモのいずれかを入力してください。"
+        : "";
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -143,6 +155,20 @@ export default async function PapersPage() {
 
       <Panel id="add-paper" className="scroll-mt-6">
         <SectionHeader eyebrow="Add Paper" title="論文をTrainerに入れる" />
+        {errorMessage ? (
+          <div className="mb-4 rounded-lg border border-rose-300/25 bg-rose-500/10 p-3 text-sm leading-6 text-rose-100">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <LocalPaperImporter />
+
+        <div className="my-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <span className="h-px flex-1 bg-white/10" />
+          URLから追加
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+
         <form action={createPaperAction} className="grid gap-4">
           <label className="grid gap-2">
             <span className="text-sm font-medium text-slate-200">論文URL</span>

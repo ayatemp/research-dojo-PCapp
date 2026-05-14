@@ -20,7 +20,7 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function useSecureCookies() {
+function shouldUseSecureCookies() {
   return (
     process.env.NODE_ENV === "production" &&
     process.env.RESEARCH_DOJO_INSECURE_COOKIES !== "1"
@@ -56,7 +56,7 @@ export async function createSession(userId: string) {
   cookieStore.set(sessionCookie, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: useSecureCookies(),
+    secure: shouldUseSecureCookies(),
     path: "/",
     expires: expiresAt,
   });

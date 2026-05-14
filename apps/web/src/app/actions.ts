@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { createSession, destroySession, hashPassword, requireUser, verifyPassword } from "@/lib/auth";
 import { decodeJson, get, id, run } from "@/lib/db";
 import { runCodexJson, runCodexText } from "@/lib/codex-runner";
+import { parsePaperFile } from "@/lib/paper-file";
 import {
   adaptiveQuestionGenerationSchema,
   ideaRefinementSchema,
@@ -52,7 +53,7 @@ function field(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
-function useSecureCookies() {
+function shouldUseSecureCookies() {
   return (
     process.env.NODE_ENV === "production" &&
     process.env.RESEARCH_DOJO_INSECURE_COOKIES !== "1"
@@ -193,7 +194,7 @@ export async function updateDisplayPreferenceAction(formData: FormData) {
   cookieStore.set("research_dojo_content_width", value, {
     httpOnly: true,
     sameSite: "lax",
-    secure: useSecureCookies(),
+    secure: shouldUseSecureCookies(),
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
@@ -207,6 +208,31 @@ export async function createPaperAction(formData: FormData) {
   const titleInput = field(formData, "title");
   const sourceUrl = field(formData, "sourceUrl");
   const textInput = field(formData, "text");
+  const localFilePath = field(formData, "localFilePath");
+  const paperFileValue = formData.get("paperFile");
+  const paperFile =
+    paperFileValue instanceof File && paperFileValue.size > 0 ? paperFileValue : null;
+
+  if (paperFile) {
+    let parsed;
+    try {
+      parsed = await parsePaperFile(paperFile);
+    } catch {
+      redirect("/papers?error=file");
+    }
+    const title = titleInput || parsed.title || paperFile.name;
+    const text = [
+      `Local file: ${localFilePath || paperFile.name}`,
+      parsed.text ? `Extracted text:\n${parsed.text}` : "",
+      textInput ? `User notes / source text:\n${textInput}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+    const documentId = await createDocument(project.id, title, text, parsed.sourceLabel);
+    redirect(`/papers/${documentId}/train`);
+  }
+
   const fetched = sourceUrl ? await fetchPaperMetadata(sourceUrl) : { title: "", text: "" };
   const title = titleInput || fetched.title || sourceUrl || "";
   const text = [
