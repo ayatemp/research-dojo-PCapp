@@ -1,6 +1,6 @@
 {
   "name": "research-dojo-pcapp",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "A local desktop-first Research Dojo app that keeps papers, reviews, ideas, and Codex practice loops on this computer.",
   "main": "desktop/main.cjs",

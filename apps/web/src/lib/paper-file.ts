@@ -14,6 +14,14 @@ export function isSupportedPaperFileName(fileName: string) {
   return supportedExtensions.has(path.extname(fileName).toLowerCase());
 }
 
+type PdfParseResult = {
+  text?: string;
+};
+
+type PdfParseModule = {
+  default?: (data: Buffer) => Promise<PdfParseResult>;
+};
+
 function titleFromFileName(fileName: string) {
   const base = path.basename(fileName, path.extname(fileName));
   return base
@@ -33,14 +41,11 @@ export async function parsePaperFile(file: File): Promise<ParsedPaperFile> {
   let text = "";
 
   if (extension === ".pdf") {
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const result = await parser.getText();
-      text = result.text;
-    } finally {
-      await parser.destroy();
-    }
+    const pdfParseModule = (await import("pdf-parse/lib/pdf-parse.js")) as PdfParseModule;
+    const parsePdf = pdfParseModule.default;
+    if (!parsePdf) throw new Error("PDF parser is not available.");
+    const result = await parsePdf(buffer);
+    text = result.text ?? "";
   } else {
     text = buffer.toString("utf8");
   }

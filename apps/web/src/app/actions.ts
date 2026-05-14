@@ -219,7 +219,13 @@ export async function createPaperAction(formData: FormData) {
     let parsed;
     try {
       parsed = await parsePaperFile(paperFile);
-    } catch {
+    } catch (error) {
+      console.error("Failed to parse local paper file", {
+        name: paperFile.name,
+        size: paperFile.size,
+        type: paperFile.type,
+        error,
+      });
       redirect("/papers?error=file");
     }
     const title = titleInput || parsed.title || paperFile.name;
