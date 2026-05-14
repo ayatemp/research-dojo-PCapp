@@ -10,6 +10,7 @@ import { requireUser } from "@/lib/auth";
 import { decodeJson } from "@/lib/db";
 import { getTrainingDocument, latestAnswerReviews } from "@/lib/store";
 import { CodexSubmitStatus } from "@/components/codex-submit-status";
+import { CopyQuestionButton } from "@/components/copy-question-button";
 import { Panel, Pill, ScoreMeter, SectionHeader } from "@/components/ui";
 
 export default async function TrainPage({
@@ -195,16 +196,19 @@ export default async function TrainPage({
                     key={question.id}
                     className="rounded-lg border border-white/10 bg-white/[0.035] p-4"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Pill tone="info">Q{index + 1}</Pill>
-                      <Pill>{question.type}</Pill>
-                      {question.source === "adaptive" ? (
-                        <Pill tone="warn">弱点ベース</Pill>
-                      ) : null}
-                      <span className="text-xs font-medium text-slate-500">
-                        difficulty {question.difficulty}/5
-                      </span>
-                      {latest?.decision ? <Pill tone="bad">{latest.decision}</Pill> : null}
+                    <div className="flex items-start gap-3">
+                      <CopyQuestionButton text={question.question} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Pill tone="info">Q{index + 1}</Pill>
+                        <Pill>{question.type}</Pill>
+                        {question.source === "adaptive" ? (
+                          <Pill tone="warn">弱点ベース</Pill>
+                        ) : null}
+                        <span className="text-xs font-medium text-slate-500">
+                          difficulty {question.difficulty}/5
+                        </span>
+                        {latest?.decision ? <Pill tone="bad">{latest.decision}</Pill> : null}
+                      </div>
                     </div>
                     <p className="mt-3 text-base font-medium leading-7 text-white">
                       {question.question}
@@ -310,12 +314,15 @@ export default async function TrainPage({
                         key={question.id}
                         className="rounded-lg border border-white/10 bg-slate-950/35 p-3"
                       >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Pill tone="info">Q{index + 1}</Pill>
-                          <Pill>{question.type}</Pill>
-                          {question.source === "adaptive" ? (
-                            <Pill tone="warn">弱点ベース</Pill>
-                          ) : null}
+                        <div className="flex items-start gap-3">
+                          <CopyQuestionButton text={question.question} />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Pill tone="info">Q{index + 1}</Pill>
+                            <Pill>{question.type}</Pill>
+                            {question.source === "adaptive" ? (
+                              <Pill tone="warn">弱点ベース</Pill>
+                            ) : null}
+                          </div>
                         </div>
                         <p className="mt-2 text-sm leading-6 text-slate-200">
                           {question.question}
@@ -346,16 +353,19 @@ export default async function TrainPage({
                           key={question.id}
                           className="rounded-lg border border-white/10 bg-slate-950/35 p-4"
                         >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Pill tone="info">Q{index + 1}</Pill>
-                            <Pill>{question.type}</Pill>
-                            {latest?.decision ? <Pill tone="bad">{latest.decision}</Pill> : null}
-                            {latest?.total_score !== null &&
-                            latest?.total_score !== undefined ? (
-                              <span className="text-xs font-semibold text-slate-300">
-                                {latest.total_score}/100
-                              </span>
-                            ) : null}
+                          <div className="flex items-start gap-3">
+                            <CopyQuestionButton text={question.question} />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Pill tone="info">Q{index + 1}</Pill>
+                              <Pill>{question.type}</Pill>
+                              {latest?.decision ? <Pill tone="bad">{latest.decision}</Pill> : null}
+                              {latest?.total_score !== null &&
+                              latest?.total_score !== undefined ? (
+                                <span className="text-xs font-semibold text-slate-300">
+                                  {latest.total_score}/100
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                           <p className="mt-3 text-sm leading-6 text-white">
                             {question.question}
